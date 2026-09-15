@@ -93,18 +93,27 @@ START -> guard --bloqueado (R6/R5)--------------------> persistir -> END
    `nota_contexto`, mismo `no_antes_de`.
 2. **Corrida completa de los 16 eventos** en el orden de `orden.txt`, revisada
    línea a línea en `visor/index.html` y contrastada a mano con `casos.md`.
-3. **Los 16 eventos de ejemplo, mockeando el LLM** (parcheando
-   `clasificar_con_llm` con respuestas fijas por `event_id`, sin gastar la
-   clave real) para poder revisar el pipeline completo de punta a punta
-   incluyendo los casos que dependen de la transcripción. Resultado: los 7
-   casos deterministas coinciden con el análisis manual de `casos.md`, y los
-   9 que pasan por LLM también — en particular, la hora calculada para el
-   `callback` del evento 09 (`"mañana a las seis"` dicho el martes 15 a las
-   17:05) sale exactamente `2026-09-16T18:00:00+02:00`, la misma fecha que usa
-   el propio enunciado como ejemplo en la sección 4.2. El ciclo completo de
-   R7 también cierra: el evento 08 crea dos recordatorios
-   (`rem_863ab68a`, `rem_bcf5b4d9`), y el evento 14 (mensaje de ese mismo
-   lead) los cancela exactamente a esos dos ids.
+3. **Los 16 eventos con un LLM real de verdad, antes de tener la clave de
+   OpenAI**: monté un script aparte (no versionado) que reutiliza tal cual
+   `kontaktu.llm._cargar_system_prompt`/`_mensaje_usuario` — el prompt y el
+   mensaje reales — pero apunta el cliente a la capa de compatibilidad OpenAI
+   de Gemini (`base_url=".../v1beta/openai/"`) con una clave personal de
+   Google AI Studio, sin tocar ni un carácter de `kontaktu/llm.py` ni de los
+   commits. Los 16/16 eventos salen bien clasificados con un modelo real, no
+   un mock: la hora del `callback` del evento 09 (`"mañana a las seis"`
+   dicho el martes 15 a las 17:05) sale exactamente `2026-09-16T18:00:00+02:00`
+   — la misma fecha que usa el propio enunciado como ejemplo en la sección
+   4.2 —, `visita_sin_confirmar` (evento 11) calcula bien el reintento
+   ajustado a la ventana del día siguiente (acordado a las 20:05, fuera de
+   la ventana que cierra a las 20:00, así que salta a las 10:00 del día
+   siguiente), y `documentacion_pendiente` (evento 13) respeta N1 sin emitir
+   WhatsApp. El ciclo completo de R7 también cierra: el evento 08 crea dos
+   recordatorios (`rem_863ab68a`, `rem_bcf5b4d9`), y el evento 14 (mensaje de
+   ese mismo lead) los cancela exactamente a esos dos ids — con `reminder_id`
+   determinista por hash, esto no depende de qué modelo clasificó la llamada.
+   De paso, el límite de la capa gratuita de Gemini (5 req/min) tumbó dos
+   eventos con `RateLimitError`: sirvió como prueba real, no buscada, de R8 —
+   el fallo no bloqueó a los demás eventos de la tanda.
    Adicionalmente forcé a mano una **segunda** llamada `cortada` para un lead
    que ya tenía una (duplicando el evento 04 con otro `idempotency_key`) para
    comprobar N4: además del reintento normal, emite la tarea
