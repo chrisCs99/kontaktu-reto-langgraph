@@ -18,6 +18,20 @@ ejemplo completo, en el orden de `eventos/orden.txt`:
 for f in $(grep -v '^#' eventos/orden.txt); do python run.py "eventos/$f"; done
 ```
 
+Para probar en local sin gastar la clave de OpenAI, `kontaktu/llm.py` admite
+un `OPENAI_BASE_URL` opcional en `.env` (sin definir, usa la API real de
+OpenAI): apunta a cualquier endpoint compatible, por ejemplo la capa de
+compatibilidad de Gemini —
+
+```
+OPENAI_API_KEY=<tu clave de Google AI Studio>
+OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+MODELO=gemini-3.6-flash
+```
+
+— y `run.py` funciona exactamente igual, evento a evento. Así se validó la
+rama LLM completa antes de tener la clave de OpenAI (ver "Cómo lo verifiqué").
+
 `salida/decisiones.jsonl` y `salida/ordenes.jsonl` se crean por *append*; para una
 corrida limpia, borra `salida/` y `estado/` antes (ambas están en `.gitignore`
 porque son generadas, no código — el enunciado evalúa "desde cero").

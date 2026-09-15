@@ -48,7 +48,15 @@ def _mensaje_usuario(evento: dict) -> str:
 
 
 def clasificar_con_llm(evento: dict) -> ClasificacionLLM:
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    # OPENAI_BASE_URL es opcional y, sin definir, el cliente usa la API real de
+    # OpenAI (la exigida por el enunciado). Sirve para pruebas locales contra
+    # cualquier endpoint compatible con la API de OpenAI (p.ej. la capa de
+    # compatibilidad de Gemini) sin gastar la clave real ni tocar este archivo.
+    kwargs: dict = {"api_key": os.environ["OPENAI_API_KEY"]}
+    base_url = os.environ.get("OPENAI_BASE_URL")
+    if base_url:
+        kwargs["base_url"] = base_url
+    client = OpenAI(**kwargs)
     modelo = os.environ.get("MODELO", "gpt-4o-mini")
     completion = client.beta.chat.completions.parse(
         model=modelo,
