@@ -93,7 +93,23 @@ START -> guard --bloqueado (R6/R5)--------------------> persistir -> END
    `nota_contexto`, mismo `no_antes_de`.
 2. **Corrida completa de los 16 eventos** en el orden de `orden.txt`, revisada
    línea a línea en `visor/index.html` y contrastada a mano con `casos.md`.
-3. **Casos cruzados construidos a propósito**:
+3. **Los 16 eventos de ejemplo, mockeando el LLM** (parcheando
+   `clasificar_con_llm` con respuestas fijas por `event_id`, sin gastar la
+   clave real) para poder revisar el pipeline completo de punta a punta
+   incluyendo los casos que dependen de la transcripción. Resultado: los 7
+   casos deterministas coinciden con el análisis manual de `casos.md`, y los
+   9 que pasan por LLM también — en particular, la hora calculada para el
+   `callback` del evento 09 (`"mañana a las seis"` dicho el martes 15 a las
+   17:05) sale exactamente `2026-09-16T18:00:00+02:00`, la misma fecha que usa
+   el propio enunciado como ejemplo en la sección 4.2. El ciclo completo de
+   R7 también cierra: el evento 08 crea dos recordatorios
+   (`rem_863ab68a`, `rem_bcf5b4d9`), y el evento 14 (mensaje de ese mismo
+   lead) los cancela exactamente a esos dos ids.
+   Adicionalmente forcé a mano una **segunda** llamada `cortada` para un lead
+   que ya tenía una (duplicando el evento 04 con otro `idempotency_key`) para
+   comprobar N4: además del reintento normal, emite la tarea
+   `revisar_llamada` con el motivo.
+4. **Casos cruzados construidos a propósito**:
    - Nuria (`c_301`) aparece en los eventos 01, 05 y 12: intentos 1 y 2
      programan reintento por voz; el intento 3 (`buzon`) agota
      `max_intentos=3` y dispara correctamente el canal de respaldo (N3) en vez
