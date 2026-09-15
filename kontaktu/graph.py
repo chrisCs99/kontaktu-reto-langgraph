@@ -248,7 +248,7 @@ def construir_grafo(campana: Campana, store: KontaktuStore):
 
         elif etiqueta == "callback":
             if estado.get("callback_iso"):
-                pedida = timewin.parse_dt(estado["callback_iso"])
+                pedida = timewin.parse_dt_localizado(estado["callback_iso"], campana)
             else:
                 pedida = occurred_at + timedelta(hours=campana.separacion_minima_horas)
             final, se_movio = timewin.encajar_callback(pedida, campana)

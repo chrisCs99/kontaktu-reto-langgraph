@@ -19,6 +19,16 @@ def parse_dt(valor: str) -> datetime:
     return datetime.fromisoformat(valor)
 
 
+def parse_dt_localizado(valor: str, campana: Campana) -> datetime:
+    """Como parse_dt, pero si el valor viene sin offset (p.ej. el LLM se lo
+    salta) lo trata como hora local de la campaña en vez de hora local del
+    sistema que ejecuta el proceso."""
+    dt = datetime.fromisoformat(valor)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo(campana.zona_horaria))
+    return dt
+
+
 def a_zona_campana(dt: datetime, campana: Campana) -> datetime:
     return dt.astimezone(ZoneInfo(campana.zona_horaria))
 
