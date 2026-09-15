@@ -92,6 +92,16 @@ START -> guard --bloqueado (R6/R5)--------------------> persistir -> END
   `primer_toque_respaldo` por ese canal. El catálogo no define un tercer canal
   alternativo, así que preferí no inventarme uno; lo documento aquí en vez de
   silenciarlo.
+- **Sin reintentos propios ante fallos de OpenAI** (rate limit, 5xx, timeout).
+  El SDK de `openai` ya reintenta solo los errores transitorios típicos
+  (`max_retries=2` por defecto, con backoff exponencial) antes de que el
+  error llegue a mi código. Por encima de eso decidí no añadir un bucle de
+  reintento propio en `run.py`: un fallo hace `rollback()` completo de la
+  transacción SQLite del evento (ni intento contado, ni decisión, ni
+  recordatorio queda a medias), así que volver a lanzar el mismo
+  `python run.py evento.json` más tarde es seguro e idempotente sin lógica
+  extra. Prefiero que la redelivery sea una decisión de quien orquesta las
+  invocaciones, no algo que el propio programa resuelva por su cuenta.
 - **`confianza` en la rama determinista son constantes fijas** (0.9-0.99), no
   probabilidades calibradas — la señalización no es estadística, es una regla
   cierta o no lo es.
@@ -108,13 +118,11 @@ START -> guard --bloqueado (R6/R5)--------------------> persistir -> END
 2. **Corrida completa de los 16 eventos** en el orden de `orden.txt`, revisada
    línea a línea en `visor/index.html` y contrastada a mano con `casos.md`.
 3. **Los 16 eventos con un LLM real de verdad, antes de tener la clave de
-   OpenAI**: monté un script aparte (no versionado) que reutiliza tal cual
-   `kontaktu.llm._cargar_system_prompt`/`_mensaje_usuario` — el prompt y el
-   mensaje reales — pero apunta el cliente a la capa de compatibilidad OpenAI
-   de Gemini (`base_url=".../v1beta/openai/"`) con una clave personal de
-   Google AI Studio, sin tocar ni un carácter de `kontaktu/llm.py` ni de los
-   commits. Los 16/16 eventos salen bien clasificados con un modelo real, no
-   un mock: la hora del `callback` del evento 09 (`"mañana a las seis"`
+   OpenAI**: usando el propio `run.py` (ver `OPENAI_BASE_URL` más arriba)
+   apuntado a la capa de compatibilidad OpenAI de Gemini con una clave
+   personal de Google AI Studio — el mismo prompt, el mismo cliente, el
+   mismo código, sin mocks. Los 16/16 eventos salen bien clasificados con un
+   modelo real: la hora del `callback` del evento 09 (`"mañana a las seis"`
    dicho el martes 15 a las 17:05) sale exactamente `2026-09-16T18:00:00+02:00`
    — la misma fecha que usa el propio enunciado como ejemplo en la sección
    4.2 —, `visita_sin_confirmar` (evento 11) calcula bien el reintento
@@ -144,3 +152,12 @@ START -> guard --bloqueado (R6/R5)--------------------> persistir -> END
      — cada uno sale con código 1, sin tocar `salida/*.jsonl` de forma parcial
      (la transacción SQLite del evento se revierte) y sin afectar a los demás
      eventos de la tanda.
+5. **Los 3 casos del catálogo sin evento de ejemplo** (`rechazada`, `callback`
+   fuera de ventana, `descartado` — marcados ⚠ en `casos.md`, pero que
+   "aparecen en el lote con el que evaluamos"): `verificacion/casos_sin_ejemplo.py`
+   construye los tres a mano y los corre contra el grafo real
+   (`python -m verificacion.casos_sin_ejemplo`). Los tres hacen exactamente lo
+   que describe `casos.md`: `rechazada` va a canal de respaldo sin reintento
+   por voz; el `callback` pedido a las 23:00 (fuera de la ventana, que cierra
+   a las 20:00) se reprograma a las 10:00 del día siguiente y además dispara
+   `aviso_cambio_hora`; `descartado` no emite nada más que `cerrar_llamada`.
