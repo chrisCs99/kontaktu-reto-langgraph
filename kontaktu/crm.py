@@ -12,7 +12,7 @@ import hashlib
 
 
 def _hash_id(prefijo: str, semilla: str) -> str:
-    return f"{prefijo}_{hashlib.sha1(semilla.encode('utf-8')).hexdigest()[:10]}"
+    return f"{prefijo}_{hashlib.sha1(semilla.encode('utf-8')).hexdigest()[:8]}"
 
 
 def orden_id(idempotency_key_orden: str) -> str:

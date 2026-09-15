@@ -5,3 +5,5 @@ __pycache__/
 venv/
 *.zip
 .pytest_cache/
+salida/
+estado/
